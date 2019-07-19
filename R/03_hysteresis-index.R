@@ -42,7 +42,7 @@ df17 %>%
   labs(x = "", y = expression(italic(Q)*","~m^3%.%s^-1)) +
   ggsci::scale_color_nejm(name = "",
                           label = c("Q", "SSC")) +
-  theme_clean()
+  theme_clean() -> test_shi1
 
 df17 %>% 
   filter(!is.na(ssc),
@@ -65,14 +65,22 @@ df17 %>%
   geom_smooth(method = "lm", se = F,
               color = "dimgrey",
               linetype = "longdash") +
+  scale_y_continuous(limits = c(0, 750),
+                     breaks = seq(0, 750, 150)) +
   labs(x = expression(italic(Q)*","~m^3%.%s^-1),
        y = expression(italic(SSC)*","~ g %.% m^-3))+
   ggsci::scale_color_jama(name = "",
                           label = c("Falling limb",
                                     "Rising limb")) +
-  theme_clean()
+  theme_clean() -> test_shi2
 
-
+ggpubr::ggarrange(test_shi1, test_shi2,
+                  labels = "AUTO",
+                  nrow = 1,
+                  align = "hv") %>% 
+  ggsave(plot = .,
+         filename = "figures/fig05_shi-example.png",
+         dpi = 500, w = 10, h = 5)
 
 # Apply SHI to the database
 df17 %>% 

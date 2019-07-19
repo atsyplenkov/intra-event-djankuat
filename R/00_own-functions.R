@@ -1,4 +1,4 @@
-# Boxplot upgrade
+# Boxplot upgrade ---------------------------------------------------------------
 # Source: https://owi.usgs.gov/blog/boxplots/
 
 n_fun <- function(x, y_position = log10(10^4)){
@@ -31,7 +31,7 @@ fancyNumbers <- function(n){
   return(textReturn)
 }
 
-# Hydrological events ----
+# Hydrological events ----------------------------------------------------------
 # Defining Local Minimum from HYSEP
 # https://github.com/USGS-R/DVstats/blob/master/R/hysep.R
 locmin <- function(x, datetime, window = 1) {
@@ -53,22 +53,6 @@ locmin <- function(x, datetime, window = 1) {
   return(LocMin)
   
 }
-
-# GGPLOT2 THEME -----------------------------------------------------------
-theme_clean <- function(base_font_family = "Ubuntu",
-                        base_font_size = 12,
-                        legend = "bottom") {
-  
-  ggpubr::theme_pubclean(base_family = base_font_family,
-                         base_size = base_font_size) +
-    theme(
-      legend.background = element_blank(),
-      legend.key = element_blank(),
-      legend.position = legend,
-      strip.background = element_blank()
-    )
-}
-
 
 # HYDROLOGICAL EVENTS -------------------------------------------------------
 hydro_events <- function(dataframe,
@@ -102,4 +86,31 @@ hydro_events <- function(dataframe,
     as_tibble() -> dataframe 
   
   return(dataframe)
+}
+
+# Hysteresis Index calculation -----------------------------------------------
+hi <- function(i) {
+  M <- lm(log(ssc) ~ I(log(q)), data = i)
+  a <- exp(coef(M)[1])
+  b <- coef(M)[2]
+  res <- i$ssc - a*i$q^b
+  r <- mean(res[1:which.max(i$q)])
+  f <- mean(res[c((which.max(i$q)+1):length(i$q))])
+  i$HI <- r-f
+  return(i)
+}
+
+# GGPLOT2 THEME -----------------------------------------------------------
+theme_clean <- function(base_font_family = "Ubuntu",
+                        base_font_size = 12,
+                        legend = "bottom") {
+  
+  ggpubr::theme_pubclean(base_family = base_font_family,
+                         base_size = base_font_size) +
+    theme(
+      legend.background = element_blank(),
+      legend.key = element_blank(),
+      legend.position = legend,
+      strip.background = element_blank()
+    )
 }

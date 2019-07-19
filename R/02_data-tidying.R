@@ -5,7 +5,7 @@
 #
 # Tsyplenkov A., Vanmaercke M., Golosov V., Chalov S.
 #
-# Part 2. Sediment budget reconstruction
+# Part 2. Data skimming
 #
 #############################################################################
 Sys.setlocale("LC_ALL", "Russian_Russia")
@@ -226,8 +226,8 @@ df17_db %>%
                                 "w.out" = "#868686FF")) +
   theme_clean() -> sed_budget17
 
-ggsave("figures/fig05_sed-budget17.png", plot = sed_budget17,
-       dpi = 500, w = 10, h = 5)
+# ggsave("figures/fig05_sed-budget17.png", plot = sed_budget17,
+       # dpi = 500, w = 10, h = 5)
 
 
 # SAVE

@@ -131,12 +131,12 @@ gl <- read_delim("data/raw/data_gl.csv", delim = ";") %>%
 
 # Read data from rain collector
 rain <- read_delim("data/raw/rain_out.csv", delim = ";") %>% 
-  mutate(start = as.POSIXct(start, tz = "UTC"),
-         end = as.POSIXct(end, tz = "UTC"),
-         p = as.double(p),
+  mutate(start = as.POSIXct(start, tz = "UTC"), # rain begin
+         end = as.POSIXct(end, tz = "UTC"), # rain end
+         p = as.double(p), # rainfall amount [mm]
          duration = difftime(end, start, tz = "UTC"),
-         duration = as.double(duration) / 60,
-         intensity = signif(p / duration, 3))  # intensity mm/h
+         duration = as.double(duration) / 60, # length of an event [h]
+         intensity = signif(p / duration, 3))  # intensity [mm/h]
 
 out <- df2017 %>% dplyr::select(datetime, q, ssc)
 

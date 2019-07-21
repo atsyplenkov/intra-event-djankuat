@@ -229,6 +229,54 @@ df17_db %>%
 # ggsave("figures/fig05_sed-budget17.png", plot = sed_budget17,
        # dpi = 500, w = 10, h = 5)
 
+# Data skimming --------------------------------------------------------
+df17 %>% 
+  dplyr::select(1:5, q.gl) %>% 
+  gather(variable, value, -datetime) %>% 
+  group_by(variable) %>% 
+  summarise(Mean = mean(value, na.rm = T),
+            SD = sd(value, na.rm = T),
+            Median = median(value, na.rm = T),
+            Max = max(value, na.rm = T),
+            Max.date = datetime[which.max(value)],
+            Min = min(value, na.rm = T),
+            Min.date = datetime[which.min(value)]) %>%
+  mutate_if(is.numeric, list(~signif(.,3))) %>% 
+  mutate_if(is.numeric, list(~prettyNum(., " "))) %>% 
+  mutate_if(is.Date, list(~format.POSIXct("%F %H:%M"))) %>% 
+  mutate_at(vars(Max.date, Min.date),
+            list(~as.character.POSIXt(.)))-> table2
 
-# SAVE
+df17 %>% 
+  dplyr::select(1:5, q.gl) %>% 
+  mutate(day = lubridate::date(datetime),
+         sl.out = q * ssc / 1000, # sediment load at the OUT [kg/s]
+         sl.mid = q * ssc.mid / 1000, # sediment load at the MID [kg/s]
+         sl.gl = q.gl * ssc.gl / 1000) %>% # sediment load at the GL [kg/s]
+  group_by(day) %>% 
+  summarise(sl.out = mean(sl.out, na.rm = T) * 86400 / 1000,
+            sl.mid = mean(sl.mid, na.rm = T) * 86400 / 1000,
+            sl.gl = mean(sl.gl, na.rm = T) * 86400 / 1000) %>% 
+  gather(station, sl, -day) %>% 
+  group_by(station) %>% 
+  summarise(`Observation period` = sum(sl, na.rm = T),
+            Total = 1.02 * `Observation period`,
+            Mean = mean(sl, na.rm = T),
+            SD = sd(sl, na.rm = T),
+            Median = median(sl, na.rm = T),
+            Max = max(sl, na.rm = T),
+            Max.date = day[which.max(sl)],
+            Min = min(sl, na.rm = T),
+            Min.date = day[which.min(sl)]) %>%
+  mutate_if(is.numeric, list(~signif(.,3))) %>% 
+  mutate_if(is.numeric, list(~prettyNum(., " "))) %>% 
+  mutate_at(vars(Max.date, Min.date),
+            list(~as.character.POSIXt(.))) %>% 
+  mutate(Total = ifelse(station == "sl.out", Total, NA)) -> table3
+  
+
+# SAVE -------------------------------------------------------------------------
 save("df17", "df17_db", file =  "data/tidy/djan17.Rdata")
+
+openxlsx::write.xlsx(list(table2, table3),
+                     "analysis/tables.xlsx")

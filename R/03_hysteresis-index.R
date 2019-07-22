@@ -86,10 +86,12 @@ ggpubr::ggarrange(test_shi1, test_shi2,
 df17 %>% 
   filter(!is.na(ssc)) %>% 
   group_by(he = as.factor(he)) %>%
+  mutate(n = n()) %>%
+  filter(n >= 5) %>% 
   do(hi(.)) %>%
   summarise(SHI = round(mean(HI), 2) / max(ssc, na.rm = T)) %>% 
   ungroup() %>% 
-  left_join(df17_db, by = "he") -> df17_db
+  full_join(df17_db, by = "he") -> df17_db
 
 # Visual identification of Hysteresis loops
 # Plot Hysteresis events
@@ -116,19 +118,59 @@ dev.off()
 # Write down loop types
 df17_db %<>% 
   mutate(type = case_when(
-    he %in% c(2:4, 6:9, 12:15, 17:24, 31, 36,
-              40, 42:43, 45:47, 49,
-              51:55, 58:60, 65,
-              67:71, 73:74, 76:77,
-              80, 82:87, 89,
-              93:95, 97:100, 104,
-              105:107, 109:120,
-              122:124) ~ "CW",
-    he %in% c(25, 26, 30, 34,
-              41, 44, 48, 63,
-              79, 88, 96) ~ "AW",
-    he %in% c(5, 28, 29, 56, 61:62,
-              64, 66, 72, 75, 78,
-              121) ~ "F8",
+    he %in% c(2:4, 5, 6:9, 12:14,
+              17:24, 31, 36,
+              40, 42:43, 45:48,
+              52:56, 58:62,
+              67:68, 70:71,
+              73:75, 77:78, 80:81, 85,
+              89:93, 95:96, 98, 101:103,
+              106:109, 114:115, 117, 119:134) ~ "CW",
+    he %in% c(26, 30, 34,
+              41, 44, 
+              49, 65, 69, 72,
+              79, 83:84, 86, 94, 112, 116) ~ "AW",
+    he %in% c(29, 50, 51,
+              63:64, 66, 76) ~ "F8",
     TRUE ~ "NA"
-  ))
+  )) %>% 
+  # Edit wrong assigned SHI values
+  mutate(SHI = ifelse(SHI > 0 & type == "AW",
+                      NA, SHI))
+
+# Check the distribution of loop types and SHI
+df17_db %>% 
+  filter(!is.na(SHI)) %>% 
+  mutate(outlier.high = SHI > quantile(SHI, .75) + 1.50*IQR(SHI),
+         outlier.low = SHI < quantile(SHI, .25) - 1.50*IQR(SHI),
+         outlier.color = case_when(outlier.high ~ "red",
+                                   outlier.low ~ "red",
+                                   outlier.low == F | outlier.high == F ~ "black")) %>% 
+  ggplot(aes(x = type, y = SHI)) +
+  geom_boxplot(outlier.shape = NA) +
+  stat_boxplot(geom ='errorbar',
+               width = .25) +
+  geom_jitter(aes(color = outlier.color),
+              width = .1,
+              alpha = .6,
+              show.legend = F) +
+  scale_y_continuous(limits = c(-0.6, 0.6)) +
+  ggsci::scale_color_lancet() +
+  labs(x = "", y = expression(italic(SHI))) +
+  theme_clean() -> shi_boxplot
+
+df17_db %>% 
+  group_by(type) %>% 
+  summarise(n = n(),
+            n.pct = n*100/nrow(.),
+            shi.mean = mean(SHI, na.rm = T),
+            shi.max = max(SHI, na.rm = T),
+            shi.min = min(SHI, na.rm = T),
+            q.mean = mean(q.out.mean, na.rm = T),
+            q.max = max(q.out.max, na.rm = T),
+            ssc.mean = mean(ssc.out.mean, na.rm = T),
+            ssc.max = max(ssc.out.max, na.rm = T),
+            r.mean = mean(r, na.rm = T),
+            sl = sum(sl.out, na.rm = T),
+            sl.pct = 100 * sum(sl.out, na.rm = T) /
+              (df17_db %>% pull(sl.out) %>% sum(., na.rm = T)))

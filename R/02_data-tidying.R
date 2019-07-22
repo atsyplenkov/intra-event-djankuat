@@ -177,23 +177,30 @@ df17 %>%
   dplyr::summarise(r = mean(r, na.rm = T),
                    r.mid = mean(r.mid, na.rm = T),
                    r.gl = mean(r.gl, na.rm = T),
+                   ssc.out.mean = mean(ssc, na.rm = T),
+                   ssc.out.max = max(ssc, na.rm = T),
+                   q.out.mean = mean(q, na.rm = T),
+                   q.out.max = max(q, na.rm = T),
                    p = sum(p, na.rm = T))  %>% 
   dplyr::left_join(df17_db, by = "he") %>% 
-  dplyr::mutate(w.out = round((r * 3600 * length / 10^6), 2),
-                w.mid = round((r.mid * 3600 * length / 10^6), 2),
-                w.gl = round((r.gl * 3600 * length / 10^6), 2)) %>% 
-  dplyr::mutate_if(is.numeric, list(~signif(., 2))) -> df17_db
+  dplyr::mutate(sl.out = round((r * 3600 * length / 10^6), 2),
+                sl.mid = round((r.mid * 3600 * length / 10^6), 2),
+                sl.gl = round((r.gl * 3600 * length / 10^6), 2),
+                # Edit Inf values in SSC's
+                ssc.out.max = ifelse(is.infinite(ssc.out.max),
+                                     NA, ssc.out.max)) %>% 
+  dplyr::mutate_if(is.numeric, list(~signif(., 2))) -> df17_db 
 
 is.na(df17_db) <- sapply(df17_db, is.na)
 
 # Plot sediment budget
 df17_db %>% 
-  mutate(w.out = ifelse(w.out >= 1800, 720, w.out),
-         w.out = na.approx(w.out),
+  mutate(sl.out = ifelse(sl.out >= 1800, 720, sl.out),
+         sl.out = na.approx(sl.out),
          he = as.numeric(he),
-         w.mid = ifelse(he > 25 & he < 108, na.approx(w.mid, rule = 2), NA),
-         w.gl = ifelse(he > 25 & he < 108, na.approx(w.gl, rule = 2), NA)) %>% 
-  dplyr::select(he, w.out, w.mid, w.gl, p) %>% 
+         sl.mid = ifelse(he > 25 & he < 108, na.approx(sl.mid, rule = 2), NA),
+         sl.gl = ifelse(he > 25 & he < 108, na.approx(sl.gl, rule = 2), NA)) %>% 
+  dplyr::select(he, sl.out, sl.mid, sl.gl, p) %>% 
   gather(station, sl, -he, -p) %>% 
   ggplot(aes(x = he, y = sl)) +
   geom_col(aes(y = p * 2), fill = "grey80") +
@@ -210,7 +217,7 @@ df17_db %>%
              inherit.aes = F,
              arrow = arrow(type = "closed", length = unit(.25, "cm"))) +
   annotate("text", x = 95, y = 615, hjust = 0, vjust = 1, lineheight = .9,
-           label = paste0(round(max(df17_db$w.out, na.rm = T), 0), " ton"),
+           label = paste0(round(max(df17_db$sl.out, na.rm = T), 0), " ton"),
            size = 4, family = "Ubuntu", color = "black") +
   labs(y = expression(italic("Sediment load")*","~t),
        x = "Hydrological event") +
@@ -221,9 +228,9 @@ df17_db %>%
   scale_x_continuous(breaks = seq(0, nrow(df17_db), 5)) +
   scale_color_manual(name = "Sediment load at",
                      labels = c("GL", "MID", "OUT"),
-                     values = c("w.gl" = "#0073C2FF",
-                                "w.mid" = "#EFC000FF",
-                                "w.out" = "#868686FF")) +
+                     values = c("sl.gl" = "#0073C2FF",
+                                "sl.mid" = "#EFC000FF",
+                                "sl.out" = "#868686FF")) +
   theme_clean() -> sed_budget17
 
 # ggsave("figures/fig05_sed-budget17.png", plot = sed_budget17,

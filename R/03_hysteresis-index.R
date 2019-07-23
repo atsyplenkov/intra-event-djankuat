@@ -95,25 +95,25 @@ df17 %>%
 
 # Visual identification of Hysteresis loops
 # Plot Hysteresis events
-df17 %>% 
-  # mutate(ssc = na.approx(ssc, rule = 2)) %>%
-  filter(!is.na(ssc)) %>% 
-  ggplot(aes(x = q, y = ssc, group = he)) + 
-  geom_path(arrow = arrow(length = unit(3, "mm"), ends = "last")) +
-  # geom_point(shape = 1, colour = "black", fill = "white", stroke = 1, size = 2) +
-  labs(x = expression(italic(Q)*","~m^3%.%s^-1),
-       y = expression(italic(SSC)*","~ g %.% m^-3))+
-  theme_clean() -> hys2017
-
-# Save result to .pdf book
-# Now you can make a visiual definition of loop type
-pdf("analysis/hysteresis_plots2017.pdf")
-ggplus::facet_multiple(plot=hys2017,
-                       facets="he",
-                       scales = "free",
-                       ncol = 2,
-                       nrow = 2)
-dev.off() 
+# df17 %>% 
+#   # mutate(ssc = na.approx(ssc, rule = 2)) %>%
+#   filter(!is.na(ssc)) %>% 
+#   ggplot(aes(x = q, y = ssc, group = he)) + 
+#   geom_path(arrow = arrow(length = unit(3, "mm"), ends = "last")) +
+#   # geom_point(shape = 1, colour = "black", fill = "white", stroke = 1, size = 2) +
+#   labs(x = expression(italic(Q)*","~m^3%.%s^-1),
+#        y = expression(italic(SSC)*","~ g %.% m^-3))+
+#   theme_clean() -> hys2017
+# 
+# # Save result to .pdf book
+# # Now you can make a visiual definition of loop type
+# pdf("analysis/hysteresis_plots2017.pdf")
+# ggplus::facet_multiple(plot=hys2017,
+#                        facets="he",
+#                        scales = "free",
+#                        ncol = 2,
+#                        nrow = 2)
+# dev.off() 
 
 # Write down loop types
 df17_db %<>% 
@@ -159,10 +159,14 @@ df17_db %>%
   labs(x = "", y = expression(italic(SHI))) +
   theme_clean() -> shi_boxplot
 
+# Create table with event characteristics
 df17_db %>% 
   group_by(type) %>% 
   summarise(n = n(),
             n.pct = n*100/nrow(.),
+            mean.duration = mean(length),
+            mean.lag = mean(q.lag),
+            sd.lag = sd(q.lag),
             shi.mean = mean(SHI, na.rm = T),
             shi.max = max(SHI, na.rm = T),
             shi.min = min(SHI, na.rm = T),
@@ -170,7 +174,24 @@ df17_db %>%
             q.max = max(q.out.max, na.rm = T),
             ssc.mean = mean(ssc.out.mean, na.rm = T),
             ssc.max = max(ssc.out.max, na.rm = T),
-            r.mean = mean(r, na.rm = T),
+            sl.mean = mean(sl.out, na.rm = T),
             sl = sum(sl.out, na.rm = T),
             sl.pct = 100 * sum(sl.out, na.rm = T) /
-              (df17_db %>% pull(sl.out) %>% sum(., na.rm = T)))
+              (df17_db %>% pull(sl.out) %>% sum(., na.rm = T))) %>% 
+  mutate_if(is.numeric, list(~signif(., 3)))  %>% 
+  mutate_if(is.numeric, list(~signif(.,3))) %>% 
+  mutate_if(is.numeric, list(~prettyNum(., " "))) -> table4
+
+# Transpose 
+table4 %<>% 
+  transpose() %>% 
+  set_rownames(names(table4)) %>% 
+  set_colnames(table4$type)
+
+pairwise.wilcox.test(g = df17_db$type, x = df17_db$r)
+
+# SAVE -------------------------------------------------------------------
+openxlsx::loadWorkbook("analysis/tables.xlsx") -> wb
+openxlsx::addWorksheet(wb, "Table 4")
+openxlsx::writeData(wb, sheet = "Table 4", x = table4, rowNames = T)
+openxlsx::saveWorkbook(wb, "analysis/tables.xlsx", overwrite = T)

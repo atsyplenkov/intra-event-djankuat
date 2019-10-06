@@ -114,3 +114,24 @@ theme_clean <- function(base_font_family = "Ubuntu",
       strip.background = element_blank()
     )
 }
+
+# Insert minor blank ticks to GGPLOT2 -------------------------------------
+# Source:: https://stackoverflow.com/questions/34533472/insert-blanks-into-a-vector-for-e-g-minor-tick-labels-in-r
+every_nth <- function(x, nth, empty = TRUE, inverse = TRUE) 
+{
+  if (!inverse) {
+    if(empty) {
+      x[1:nth == 1] <- ""
+      x
+    } else {
+      x[1:nth != 1]
+    }
+  } else {
+    if(empty) {
+      x[1:nth != 1] <- ""
+      x
+    } else {
+      x[1:nth == 1]
+    }
+  }
+}

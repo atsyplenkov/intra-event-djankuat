@@ -38,10 +38,11 @@ df17 %>%
   scale_y_continuous(limits = c(0, 2.5),
                      sec.axis = sec_axis(~. * 300,
                                          breaks = seq(0, 750, 150),
-                                         name = expression(italic(SSC)*","~ g %.% m^-3))) +
-  labs(x = "", y = expression(italic(Q)*","~m^3%.%s^-1)) +
+                                         name = expression(italic(SSC)*","~ г %.% м^-3))) +
+  labs(x = "", y = expression(italic(Q)*","~м^3%.%г^-1)) +
   ggsci::scale_color_nejm(name = "",
-                          label = c("Q", "SSC")) +
+                          label = c("Расход воды, Q",
+                                    "Мутность, SSC")) +
   theme_clean() -> test_shi1
 
 df17 %>% 
@@ -66,12 +67,12 @@ df17 %>%
               color = "dimgrey",
               linetype = "longdash") +
   scale_y_continuous(limits = c(0, 750),
-                     breaks = seq(0, 750, 150)) +
-  labs(x = expression(italic(Q)*","~m^3%.%s^-1),
-       y = expression(italic(SSC)*","~ g %.% m^-3))+
+                     breaks = seq(0, 750, 150), position = "right") +
+  labs(x = expression(italic(Q)*","~м^3%.%с^-1),
+       y = expression(italic(SSC)*","~ г %.% м^-3))+
   ggsci::scale_color_jama(name = "",
-                          label = c("Falling limb",
-                                    "Rising limb")) +
+                          label = c("Кривая спада",
+                                    "Кривая подъема")) +
   theme_clean() -> test_shi2
 
 ggpubr::ggarrange(test_shi1, test_shi2,
@@ -79,7 +80,7 @@ ggpubr::ggarrange(test_shi1, test_shi2,
                   nrow = 1,
                   align = "hv") %>% 
   ggsave(plot = .,
-         filename = "figures/fig05_shi-example.png",
+         filename = "figures/rus/fig05_shi-example_rus.png",
          dpi = 500, w = 10, h = 5)
 
 # Apply SHI to the database
@@ -200,13 +201,13 @@ df17_db %>%
   ggpmisc::stat_poly_eq(aes(label =  paste(stat(adj.rr.label))),
                         formula = y~x,
                         parse = T) +
-  ggsci::scale_color_nejm(name = "Loop type:",
-                          label = c("Anticlockwise",
-                                    "Clockwise",
-                                    "Figure-eight",
-                                    "Not clear")) +
+  ggsci::scale_color_nejm(name = "Тип зависимости:",
+                          label = c("Отрицательные петли",
+                                    "Положительные петли",
+                                    "Сложный тип связи",
+                                    "Неопределенный")) +
   scale_y_continuous(limits = c(-0.6, 0.6)) +
-  labs(x = expression(Max~italic(Q[OUT])~", m"^3%.%s^-1), 
+  labs(x = expression(Max~italic(Q[ДЖАН])~", м"^3%.%с^-1), 
        y = expression(italic(SHI))) +
   theme_clean() -> shi_q
 
@@ -220,13 +221,13 @@ df17_db %>%
   ggpmisc::stat_poly_eq(aes(label =  paste(stat(adj.rr.label))),
                         formula = y~x,
                         parse = T) +
-  ggsci::scale_color_nejm(name = "Loop type:",
-                          label = c("Anticlockwise",
-                                    "Clockwise",
-                                    "Figure-eight",
-                                    "Not clear")) +
+  ggsci::scale_color_nejm(name = "Тип зависимости:",
+                          label = c("Отрицательные петли",
+                                    "Положительные петли",
+                                    "Сложный тип связи",
+                                    "Неопределенный")) +
   scale_y_continuous(limits = c(-0.6, 0.6)) +
-  labs(x = expression(log[10]*(italic(SL[OUT]))~", t"%.%event^-1), 
+  labs(x = expression(log[10]*(italic(SL[ДЖАН]))~", т"%.%событие^-1), 
        y = expression(italic(SHI))) +
   theme_clean() -> shi_sl
 
@@ -235,12 +236,12 @@ df17_db %>%
 ggpubr::ggarrange(shi_q, shi_sl,
                   nrow = 1,
                   common.legend = T,
-                  legend = "bottom",
+                  legend = "right",
                   labels = "AUTO",
                   align = "hv") %>% 
   ggsave(plot = .,
-         filename = "figures/fig07_shi.png",
-         dpi = 500, w = 10, h = 5)
+         filename = "figures/rus/fig07_shi_rus.png",
+         dpi = 500, w = 14, h = 5)
 
 # Save tables
 openxlsx::loadWorkbook("analysis/tables.xlsx") -> wb

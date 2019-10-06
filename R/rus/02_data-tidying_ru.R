@@ -122,11 +122,12 @@ df17_norain %>%
                                            stat(adj.rr.label),
                                            sep = "~~~"))) +
   lims(y = c(0, 1000), x = c(0, 1000)) +
-  xlab(expression(italic(SSC[GL])*","~~ g %.% m^-3)) +
-  ylab(expression(italic(SSC[OUT])*","~~ g %.% m^-3)) +
+  xlab(expression(italic(SSC["ДАЛ"])*","~~ г %.% м^-3)) +
+  ylab(expression(italic(SSC["ДЖАН"])*","~~ г %.% м^-3)) +
   theme_clean() -> ssc_ssc
 
-ggsave("figures/fig03_ssc-ssc.png", plot = ssc_ssc,
+ggsave("figures/rus/fig03_ssc-ssc_rus.png",
+       plot = ssc_ssc,
        dpi = 500, w = 8, h = 6)
 
 gl.ratio <- as.numeric(format(coef(lm(ssc ~ ssc.gl - 1,
@@ -148,18 +149,18 @@ df17 %>%
               alpha = 0.8) +
   ggpmisc::stat_poly_eq(formula = y ~ x,
                         parse = T,
-                        eq.with.lhs = "italic(Q[GL])~`=`~",
-                        eq.x.rhs = "`·`~italic(H[GL])",
+                        eq.with.lhs = "italic(Q[ДАЛ])~`=`~",
+                        eq.x.rhs = "`·`~italic(H[ДАЛ])",
                         aes(label =  paste(stat(eq.label),
                                            stat(adj.rr.label),
                                            sep = "~~~"))) +
   xlim(70, 83) +
   ylim(0, 2) +
-  labs(x = expression(italic(H[GL])*","*~cm),
-       y = expression(italic(Q[GL])*","*~m^3%.%s^"-1")) +
+  labs(x = expression(italic(H[ДАЛ])*","*~см),
+       y = expression(italic(Q[ДАЛ])*","*~м^3%.%с^"-1")) +
   theme_clean() -> qfh
 
-ggsave("figures/fig04_qfh.png", plot = qfh,
+ggsave("figures/rus/fig04_qfh_rus.png", plot = qfh,
        dpi = 500, w = 5, h = 5)
 
 # Build linear model q.gl = f(h.gl)
@@ -243,7 +244,7 @@ df17 %>%
   mutate(Total = ifelse(station == "sl.out", Total, NA)) -> table3
 
 # Hydrograph plot ------------------------------------------------------------
-Sys.setlocale("LC_TIME", "English")
+# Sys.setlocale("LC_TIME", "English")
 
 df17 %>% 
   mutate_at(vars(q, ssc), list(~zoo::na.approx(., rule = 2))) %>%

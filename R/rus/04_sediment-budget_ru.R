@@ -39,6 +39,8 @@ df17_db %>%
   mutate(dw = sl.gl - sl.out) %>% 
   ggplot(aes(x = he, y = dw, fill = type)) +
   geom_col() +
+  geom_text(x = 15, y = 50, label = "Аккумуляция", color = "black") +
+  geom_text(x = 15, y = -50, label = "Эрозия", color = "black") +
   labs(x = "Гидрологическое событие",
        y = expression(SL[ДАЛ]~-~SL[ДЖАН]~", тонн")) +
   # ggrepel::geom_text_repel(aes(label = he),
@@ -126,15 +128,19 @@ df17_db %>%
 df17_db %>% 
   mutate(delta = 100 - sl.gl * 100 / sl.out) %>%
   filter(p == 0, !he %in% c(49, 56, 96)) %>%
+  # filter(type == "CW") %>% 
   ggplot(aes(x = SHI, y = delta)) +
   geom_point(aes(color = type)) +
   # ggrepel::geom_text_repel(aes(label = he)) +
-  ggpmisc::stat_poly_eq(aes(label =  paste(stat(rr.label))),
+  ggpmisc::stat_poly_eq(data = . %>% filter(type == "CW"),
+                        aes(label =  paste(stat(rr.label))),
                         formula = y ~ x,
                         parse = T) +
-  geom_smooth(method = "lm",
+  geom_smooth(data = . %>% filter(type == "CW"),
+              aes(color = type),
+              method = "lm",
               formula = y ~ x,
-              color = "black",
+              # color = "black",
               linetype = "dashed",
               se = F) +
   scale_x_continuous(limits = c(-0.2, 0.5)) +
@@ -155,11 +161,15 @@ df17_db %>%
   ggplot(aes(x = SHI, y = delta)) +
   geom_point(aes(color = type)) +
   # ggrepel::geom_text_repel(aes(label = he)) +
-  ggpmisc::stat_poly_eq(aes(label =  paste(stat(rr.label))),
-                        formula = y~x,
+  ggpmisc::stat_poly_eq(data = . %>% filter(type == "CW"),
+                        aes(label =  paste(stat(rr.label))),
+                        formula = y ~ x,
                         parse = T) +
-  geom_smooth(method = "lm",
-              color = "black",
+  geom_smooth(data = . %>% filter(type == "CW"),
+              aes(color = type),
+              method = "lm",
+              formula = y ~ x,
+              # color = "black",
               linetype = "dashed",
               se = F) +
   scale_x_continuous(limits = c(-0.2, 0.5)) +
@@ -175,9 +185,9 @@ df17_db %>%
   theme_clean() -> shi_mid
 
 df17_db %>% 
-  # mutate(delta = 100 - sl.mid * 100 / sl.out) %>%
-  # filter(p > 0, he != 89) %>%
-  mutate(delta = 100 - sl.gl * 100 / sl.out) %>%
+  mutate(delta = 100 - sl.mid * 100 / sl.out) %>%
+  filter(type == "CW") %>%
+  # mutate(delta = 100 - sl.gl * 100 / sl.out) %>%
   filter(p == 0, !he %in% c(49, 56, 96)) %>%
   select_if(is.numeric) %>% 
   correlate() %>% 

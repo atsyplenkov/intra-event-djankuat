@@ -59,9 +59,10 @@ df17_db %>%
 df17_db %>% 
   mutate(delta = sl.gl * 100 / sl.out) %>%
   filter(delta <= 100) %>% 
-  summarise(role = median(delta)) %>% 
-  # summarise(role = density(delta)$x[which.max(density(delta)$y)]) %>% 
-  pull(role) %>% cat("Glacier role is", ., "%")
+  summarise(n = n(),
+            med = median(delta),
+            mean = mean(delta),
+            pdf = density(delta)$x[which.max(density(delta)$y)]) 
 
 df17_db %>% 
   mutate(delta = sl.gl * 100 / sl.out) %>%
@@ -71,36 +72,42 @@ df17_db %>%
                                mutate(delta = sl.gl * 100 / sl.out) %>%
                                filter(delta <= 100) %>%
                                pull(delta) %>% median,
-                             y = 0.02),
+                             y = 14),
                aes(x = x, xend = x,
                    y = 0, yend = y),
                linetype = "dashed") +
-  annotate("text", x = 77.6, y = 0.02, label = "Median",
-           vjust = -.5) +
-  geom_density(color = "grey80",
-               fill = "#0288b7",
-               alpha = .35) +
+  annotate("text", x = 77.6, y = 15, label = "Median",
+           vjust = .5) +
+  geom_histogram(binwidth = 10,
+                 color = "grey80",
+                 fill = "#0288b7",
+                 alpha = .35) +
+  # geom_density(color = "grey80",
+  #              fill = "#0288b7",
+  #              alpha = .35) +
   scale_x_continuous(breaks = seq(0, 100, 10)) +
   labs(x = expression(italic(SL[GL])*", %"),
-       y = "Probability density") +
+       y = "Number of events") +
   theme_clean() -> glacier_pdf
 
 # SHI vs MID and GL
 df17_db %>% 
-  mutate(delta = 100 - sl.gl * 100 / sl.out) %>%
+  mutate(delta = 100 * (sl.gl / sl.out)) %>%
   filter(p == 0, !he %in% c(49, 56, 96)) %>%
-  ggplot(aes(x = SHI, y = delta)) +
-  geom_point(aes(color = type)) +
+  ggplot(aes(x = SHI, y = delta, color = type)) +
+  geom_point() +
   # ggrepel::geom_text_repel(aes(label = he)) +
-  ggpmisc::stat_poly_eq(aes(label =  paste(stat(rr.label))),
+  ggpmisc::stat_poly_eq(data = . %>% filter(type == "CW"),
+                        aes(label =  paste(stat(rr.label))),
                         formula = y ~ x,
                         parse = T) +
-  geom_smooth(method = "lm",
+  geom_smooth(data = . %>% filter(type == "CW"),
+              method = "lm",
               formula = y ~ x,
-              color = "black",
               linetype = "dashed",
               se = F) +
-  scale_x_continuous(limits = c(-0.2, 0.5)) +
+  # scale_x_continuous(limits = c(-0.2, 0.5)) +
+  # scale_y_continuous(limits = c(-50, 80)) +
   scale_color_manual(name = "",
                      label = c("Anticlockwise",
                                "Clockwise",
@@ -108,24 +115,59 @@ df17_db %>%
                                "Not clear"),
                      values = c( "#4DBBD5FF", "#E64B35FF",
                                  "#00A087FF", "gray")) +
-  labs(x = expression(italic(SHI)),
-       y = expression(italic(SL[GL])*", %")) +
-  theme_clean() -> shi_gl
+  labs(title = "During non-rainfall events",
+       subtitle = "A",
+       x = expression(italic(SHI)),
+       y = expression(italic(SL["GL,REL"])*", %")) +
+  theme_clean() -> shi_gl_norain
 
 df17_db %>% 
-  mutate(delta = 100 - sl.mid * 100 / sl.out) %>%
-  filter(p > 0, he != 89) %>%
-  ggplot(aes(x = SHI, y = delta)) +
-  geom_point(aes(color = type)) +
+  mutate(delta = 100 * sl.gl / sl.out) %>%
+  filter(p > 0) %>%
+  ggplot(aes(x = SHI, y = delta, color = type)) +
+  geom_point() +
   # ggrepel::geom_text_repel(aes(label = he)) +
-  ggpmisc::stat_poly_eq(aes(label =  paste(stat(rr.label))),
+  ggpmisc::stat_poly_eq(data = . %>% filter(type == "CW"),
+                        aes(label =  paste(stat(rr.label))),
+                        formula = y ~ x,
+                        parse = T) +
+  geom_smooth(data = . %>% filter(type == "CW"),
+              method = "lm",
+              formula = y ~ x,
+              linetype = "dashed",
+              se = F) +
+  # scale_x_continuous(limits = c(-0.2, 0.5)) +
+  # scale_y_continuous(limits = c(-50, 80)) +
+  scale_color_manual(name = "",
+                     label = c("Anticlockwise",
+                               "Clockwise",
+                               "Figure-eight",
+                               "Not clear"),
+                     values = c( "#4DBBD5FF", "#E64B35FF",
+                                 "#00A087FF", "gray")) +
+  labs(title = "During rainfall events",
+       subtitle = "C",
+       x = expression(italic(SHI)),
+       y = expression(italic(SL["GL,REL"])*", %")) +
+  theme_clean() -> shi_gl_rain
+
+df17_db %>% 
+  mutate(delta = 100 * ((sl.mid - sl.gl)/sl.out)) %>%
+  # mutate(delta = 100 - sl.mid * 100 / sl.out) %>%
+  filter(p > 3) %>%
+  ggplot(aes(x = SHI, y = delta, color = type)) +
+  geom_point() +
+  # ggrepel::geom_text_repel(aes(label = he)) +
+  ggpmisc::stat_poly_eq(data = . %>% filter(type == "CW"),
+                        aes(label =  paste(stat(rr.label))),
                         formula = y~x,
                         parse = T) +
-  geom_smooth(method = "lm",
-              color = "black",
+  geom_smooth(data = . %>% filter(type == "CW"),
+              method = "lm",
               linetype = "dashed",
               se = F) +
   scale_x_continuous(limits = c(-0.2, 0.5)) +
+  # scale_y_continuous(limits = c(-50, 80)) +
   scale_color_manual(name = "",
                      label = c("Anticlockwise",
                                "Clockwise",
@@ -133,30 +175,63 @@ df17_db %>%
                                "Not clear"),
                      values = c( "#4DBBD5FF", "#E64B35FF",
                                  "#00A087FF", "gray")) +  
-  labs(x = expression(italic(SHI)),
-       y = expression(italic(SL[MID])*", %")) +
-  theme_clean() -> shi_mid
+  labs(subtitle = "D",
+       x = expression(italic(SHI)),
+       y = expression(italic(SL["MID,REL"])*", %")) +
+  theme_clean() -> shi_mid_rain
+
+df17_db %>% 
+  mutate(delta = 100 * ((sl.mid - sl.gl)/sl.out)) %>%
+  # mutate(delta = 100 - sl.mid * 100 / sl.out) %>%
+  filter(p == 0) %>%
+  ggplot(aes(x = SHI,
+             y = delta,
+             color = type)) +
+  geom_point() +
+  # ggrepel::geom_text_repel(aes(label = he)) +
+  ggpmisc::stat_poly_eq(data = . %>% filter(type == "CW"),
+                        aes(label =  paste(stat(rr.label))),
+                        formula = y~x,
+                        parse = T) +
+  geom_smooth(data = . %>% filter(type == "CW"),
+              method = "lm",
+              linetype = "dashed",
+              se = F) +
+  scale_x_continuous(limits = c(-0.2, 0.5)) +
+  # scale_y_continuous(limits = c(-50, 80)) +
+  scale_color_manual(name = "",
+                     label = c("Anticlockwise",
+                               "Clockwise",
+                               "Figure-eight",
+                               "Not clear"),
+                     values = c( "#4DBBD5FF", "#E64B35FF",
+                                 "#00A087FF", "gray")) +  
+  labs(subtitle = "B",
+       x = expression(italic(SHI)),
+       y = expression(italic(SL["MID,REL"])*", %")) +
+  theme_clean() -> shi_mid_norain
+
 
 df17_db %>% 
   # mutate(delta = 100 - sl.mid * 100 / sl.out) %>%
-  # filter(p > 0, he != 89) %>%
-  mutate(delta = 100 - sl.gl * 100 / sl.out) %>%
-  filter(p == 0, !he %in% c(49, 56, 96)) %>%
+  filter(p > 5, he != 89) %>%
+  # mutate(delta = 100 - sl.gl * 100 / sl.out) %>%
+  # filter(p == 0, !he %in% c(49, 56, 96)) %>%
   select_if(is.numeric) %>% 
-  correlate() %>% 
+  correlate(method = "spearman") %>% 
   focus(SHI)
 
 # SAVE -------------------------------------------------------------------
 ggsave("figures/fig08_sed-budget.png", sed_budget,
        dpi = 500, w = 10, h = 6)
 
-ggsave("figures/fig09_glacier-pdf.png", glacier_pdf,
-       dpi = 500, w = 7, h = 5)
-
-ggpubr::ggarrange(shi_gl, shi_mid, nrow = 1, align = "hv",
-                  labels = "AUTO", common.legend = T,
+ggpubr::ggarrange(shi_gl_norain, shi_mid_norain,
+                  shi_gl_rain, shi_mid_rain,
+                  nrow = 2, ncol = 2,
+                  align = "hv",
+                  common.legend = T,
                   legend = "bottom") %>% 
   ggsave(plot = .,
          filename = "figures/fig10_shi-pct.png",
-         dpi = 500, w = 10, h = 5)
+         dpi = 500, w = 6, h = 6)
 

@@ -108,6 +108,7 @@ theme_clean <- function(base_font_family = "Ubuntu",
   ggpubr::theme_pubclean(base_family = base_font_family,
                          base_size = base_font_size) +
     theme(
+      plot.title = element_text(family = "Ubuntu Condensed"),
       legend.background = element_blank(),
       legend.key = element_blank(),
       legend.position = legend,

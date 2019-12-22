@@ -133,6 +133,36 @@ gl.ratio <- as.numeric(format(coef(lm(ssc ~ ssc.gl - 1,
                                       data = df17_norain[lbl,]))[1], digits = 2))
 
 # Water discharge reconstruction -----------------------------------------------
+# Read q = f(H) data from OUT station
+read_xlsx("data/raw/discharges_dja_2017_v3.xlsx", sheet = "Q(H)",
+                     range = "A2:D62") %>% 
+  select(-2) %>% 
+  magrittr::set_colnames(c("date", "h", "q")) %>% 
+  mutate(date = force_tz(date, "Europe/Moscow")) %>% 
+  filter(!is.na(q), !str_detect(q, "-")) %>% 
+  mutate(date = na.locf(date),
+         Month = month(date, label = T, locale = "English-US"),
+         q = as.double(q)) %>%  
+  ggplot(aes(x = h, y = q, color = Month)) +
+  geom_point() +
+  geom_smooth(method = "lm",
+              se = F,
+              size = 1.4,
+              alpha = 0.8) +
+  ggpmisc::stat_poly_eq(formula = y ~ x,
+                        parse = T, vstep = 0.05, 
+                        eq.with.lhs = "italic(Q[OUT])~`=`~",
+                        eq.x.rhs = "`·`~italic(H[OUT])",
+                        aes(label =  paste(stat(eq.label),
+                                           stat(adj.rr.label),
+                                           sep = "~~~"))) +
+  scale_y_continuous(breaks = seq(0, 3, 0.5),
+                     lim = c(0, 3)) +
+  labs(x = expression(italic(H[OUT])*","*~cm),
+       y = expression(italic(Q[OUT])*","*~m^3%.%s^"-1")) +
+  scale_color_manual(values = nationalparkcolors::park_palette("SmokyMountains")) +
+  theme_clean() -> qfh.out
+
 # Subset all non-rainy days at GL station
 df17 %>% 
   mutate(q.gl = ifelse(factor_rain == F & ssc.gl > 1,
@@ -153,14 +183,20 @@ df17 %>%
                         aes(label =  paste(stat(eq.label),
                                            stat(adj.rr.label),
                                            sep = "~~~"))) +
-  xlim(70, 83) +
-  ylim(0, 2) +
+  scale_y_continuous(breaks = seq(0, 3, 0.5),
+                     lim = c(0, 3)) +
+  xlim(65, 85) +
   labs(x = expression(italic(H[GL])*","*~cm),
        y = expression(italic(Q[GL])*","*~m^3%.%s^"-1")) +
-  theme_clean() -> qfh
+  theme_clean() -> qfh.gl
 
-ggsave("figures/fig04_qfh.png", plot = qfh,
-       dpi = 500, w = 5, h = 5)
+ggpubr::ggarrange(qfh.out, qfh.gl, ncol = 2, align = "v",
+                  common.legend = T, legend = "bottom",
+                  labels = "AUTO") %>% 
+ggsave("figures/fig04_qfh.png",
+       plot = .,
+       dpi = 1000,
+       w = 10, h = 5)
 
 # Build linear model q.gl = f(h.gl)
 qfh <- lm(q.gl ~ h.gl, data = filter(df17, factor_rain == F & ssc.gl > 1))
@@ -182,6 +218,7 @@ df17 %>%
                    q.out.mean = mean(q, na.rm = T),
                    q.out.max = max(q, na.rm = T),
                    p = sum(p, na.rm = T),
+                   intensity = max(intensity, na.rm = T),
                    peak.q = datetime[which.max(q)],
                    peak.ssc = datetime[which.max(ssc)[1]],
                    q.lag = as.double(difftime(peak.q, peak.ssc, "hours")))  %>% 
@@ -191,6 +228,8 @@ df17 %>%
                 sl.mid = round((r.mid * 3600 * length / 10^6), 2),
                 sl.gl = round((r.gl * 3600 * length / 10^6), 2),
                 # Edit Inf values in SSC's
+                intensity = ifelse(is.infinite(intensity),
+                                     NA, intensity),
                 ssc.out.max = ifelse(is.infinite(ssc.out.max),
                                      NA, ssc.out.max)) %>% 
   dplyr::mutate_if(is.numeric, list(~signif(., 2))) -> df17_db
@@ -213,34 +252,62 @@ df17 %>%
   mutate_if(is.numeric, list(~prettyNum(., " "))) %>% 
   mutate_if(is.Date, list(~format.POSIXct("%F %H:%M"))) %>% 
   mutate_at(vars(Max.date, Min.date),
-            list(~as.character.POSIXt(.)))-> table2
+            list(~as.character.POSIXt(.))) -> table2
 
-df17 %>% 
-  dplyr::select(1:5, q.gl) %>% 
-  mutate(day = lubridate::date(datetime),
-         sl.out = q * ssc / 1000, # sediment load at the OUT [kg/s]
-         sl.mid = q * ssc.mid / 1000, # sediment load at the MID [kg/s]
-         sl.gl = q.gl * ssc.gl / 1000) %>% # sediment load at the GL [kg/s]
-  group_by(day) %>% 
-  summarise(sl.out = mean(sl.out, na.rm = T) * 86400 / 1000,
-            sl.mid = mean(sl.mid, na.rm = T) * 86400 / 1000,
-            sl.gl = mean(sl.gl, na.rm = T) * 86400 / 1000) %>% 
-  gather(station, sl, -day) %>% 
+
+df17_db %>% 
+  dplyr::select(he, sl.out, sl.mid, sl.gl) %>% 
+  gather(station, sl, -he) %>% 
   group_by(station) %>% 
-  summarise(`Observation period` = sum(sl, na.rm = T),
+  summarise(n = sum(!is.na(sl)),
+            `Observation period` = sum(sl, na.rm = T),
             Total = 1.02 * `Observation period`,
             Mean = mean(sl, na.rm = T),
             SD = sd(sl, na.rm = T),
             Median = median(sl, na.rm = T),
             Max = max(sl, na.rm = T),
-            Max.date = day[which.max(sl)],
+            # Max.date = he[which.max(sl)],
+            Max.date = paste0(df17_db$start[he[which.max(sl)]],
+                              " — ",
+                              df17_db$end[he[which.max(sl)]]),
             Min = min(sl, na.rm = T),
-            Min.date = day[which.min(sl)]) %>%
-  mutate_if(is.numeric, list(~signif(.,3))) %>% 
+            # Min.date = he[which.min(sl)],
+            Min.date = paste0(df17_db$start[he[which.min(sl)]],
+                              " — ",
+                              df17_db$end[he[which.min(sl)]])) %>% 
+  mutate_if(is.numeric, list(~round(., 2))) %>% 
   mutate_if(is.numeric, list(~prettyNum(., " "))) %>% 
   mutate_at(vars(Max.date, Min.date),
             list(~as.character.POSIXt(.))) %>% 
-  mutate(Total = ifelse(station == "sl.out", Total, NA)) -> table3
+  mutate(Total = ifelse(station == "sl.out", Total, NA)) -> table3_he
+# 
+# df17 %>% 
+#   dplyr::select(1:5, q.gl) %>% 
+#   mutate(day = lubridate::date(datetime),
+#          sl.out = q * ssc / 1000, # sediment load at the OUT [kg/s]
+#          sl.mid = q * ssc.mid / 1000, # sediment load at the MID [kg/s]
+#          sl.gl = q.gl * ssc.gl / 1000) %>% # sediment load at the GL [kg/s]
+#   group_by(day) %>% 
+#   summarise(sl.out = mean(sl.out, na.rm = T) * 86400 / 1000,
+#             sl.mid = mean(sl.mid, na.rm = T) * 86400 / 1000,
+#             sl.gl = mean(sl.gl, na.rm = T) * 86400 / 1000) %>% 
+#   gather(station, sl, -day) %>% 
+#   group_by(station) %>% 
+#   summarise(n = sum(!is.na(sl)),
+#             `Observation period` = sum(sl, na.rm = T),
+#             Total = 1.02 * `Observation period`,
+#             Mean = mean(sl, na.rm = T),
+#             SD = sd(sl, na.rm = T),
+#             Median = median(sl, na.rm = T),
+#             Max = max(sl, na.rm = T),
+#             Max.date = day[which.max(sl)],
+#             Min = min(sl, na.rm = T),
+#             Min.date = day[which.min(sl)]) %>%  
+#   mutate_if(is.numeric, list(~signif(., 5))) 
+#   mutate_if(is.numeric, list(~prettyNum(., " "))) %>% 
+#   mutate_at(vars(Max.date, Min.date),
+#             list(~as.character.POSIXt(.))) %>% 
+#   mutate(Total = ifelse(station == "sl.out", Total, NA)) -> table3_day
 
 # Hydrograph plot ------------------------------------------------------------
 Sys.setlocale("LC_TIME", "English")
@@ -271,5 +338,5 @@ ggsave("figures/fig06_hydrograph.png", hydrograph,
 # SAVE -------------------------------------------------------------------------
 save("df17", "df17_db", file =  "data/tidy/djan17.Rdata")
 
-openxlsx::write.xlsx(list(table2, table3),
+openxlsx::write.xlsx(list(table2, table3_he),
                      "analysis/tables.xlsx")

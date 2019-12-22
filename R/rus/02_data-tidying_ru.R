@@ -226,6 +226,8 @@ df17 %>%
   summarise(sl.out = mean(sl.out, na.rm = T) * 86400 / 1000,
             sl.mid = mean(sl.mid, na.rm = T) * 86400 / 1000,
             sl.gl = mean(sl.gl, na.rm = T) * 86400 / 1000) %>% 
+  filter(day >= as.Date("2017-06-30"),
+         day <= as.Date("2017-08-30")) %>% 
   gather(station, sl, -day) %>% 
   group_by(station) %>% 
   summarise(`Observation period` = sum(sl, na.rm = T),
@@ -242,6 +244,39 @@ df17 %>%
   mutate_at(vars(Max.date, Min.date),
             list(~as.character.POSIXt(.))) %>% 
   mutate(Total = ifelse(station == "sl.out", Total, NA)) -> table3
+
+df17 %>% 
+  dplyr::select(1:5, q.gl, p) %>% 
+  mutate(day = lubridate::date(datetime),
+         sl.out = q * ssc / 1000, # sediment load at the OUT [kg/s]
+         sl.mid = q * ssc.mid / 1000, # sediment load at the MID [kg/s]
+         sl.gl = q.gl * ssc.gl / 1000) %>% # sediment load at the GL [kg/s]
+  group_by(day) %>% 
+  summarise(sl.out = mean(sl.out, na.rm = T) * 86400 / 1000,
+            sl.mid = mean(sl.mid, na.rm = T) * 86400 / 1000,
+            sl.gl = mean(sl.gl, na.rm = T) * 86400 / 1000,
+            p = sum(p, na.rm = T)) %>% 
+  mutate(rain = ifelse(p != 0, "yes", "no")) %>% 
+  filter(day >= as.Date("2017-06-30"),
+         day <= as.Date("2017-08-30")) %>%
+  gather(station, sl, -day, -rain) %>%
+  filter(station != "p") %>% 
+  group_by(rain, station) %>% 
+  summarise(`Observation period` = sum(sl, na.rm = T),
+            Total = 1.02 * `Observation period`,
+            Mean = mean(sl, na.rm = T),
+            SD = sd(sl, na.rm = T),
+            Median = median(sl, na.rm = T),
+            Max = max(sl, na.rm = T),
+            Max.date = day[which.max(sl)],
+            Min = min(sl, na.rm = T),
+            Min.date = day[which.min(sl)]) %>% 
+  mutate_if(is.numeric, list(~signif(.,3))) %>% 
+  mutate_if(is.numeric, list(~prettyNum(., " "))) %>% 
+  mutate_at(vars(Max.date, Min.date),
+            list(~as.character.POSIXt(.))) %>% 
+  mutate(Total = ifelse(station == "sl.out", Total, NA)) -> table35
+  
 
 # Hydrograph plot ------------------------------------------------------------
 # Sys.setlocale("LC_TIME", "English")
@@ -272,5 +307,5 @@ ggsave("figures/fig06_hydrograph.png", hydrograph,
 # SAVE -------------------------------------------------------------------------
 save("df17", "df17_db", file =  "data/tidy/djan17.Rdata")
 
-openxlsx::write.xlsx(list(table2, table3),
+openxlsx::write.xlsx(list(table2, table3, table35),
                      "analysis/tables.xlsx")

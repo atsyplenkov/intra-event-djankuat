@@ -178,15 +178,21 @@ df17_db %>%
             sl = sum(sl.out, na.rm = T),
             sl.pct = 100 * sum(sl.out, na.rm = T) /
               (df17_db %>% pull(sl.out) %>% sum(., na.rm = T))) %>% 
-  mutate_if(is.numeric, list(~signif(., 3)))  %>% 
-  mutate_if(is.numeric, list(~signif(.,3))) %>% 
+  data.table::transpose(keep.names = "rn") %>% 
+  set_colnames(c("rn", "AW", "CW", "F8", "NL")) %>% 
+  filter(rn != "type") %>% 
+  as_tibble() %>% 
+  mutate_at(vars("AW", "CW", "F8", "NL"), as.numeric) %>% 
+  rowwise() %>% 
+  mutate(Total = case_when(rn %in% c("n", "n.pct",
+                                     "sl", "sl.pct") ~ sum(AW, CW, F8, NL),
+                           rn %in% c("shi.max", "ssc.max", "q.max") ~ max(c(AW, CW, F8, NL)),
+                           rn %in% c("shi.min") ~ min(c(AW, CW, F8, NL)),
+                           rn == "sd.lag" ~ 0,
+                           TRUE ~ mean(c(AW, CW, F8, NL), na.rm = T)
+                           )) %>% 
+  mutate_if(is.numeric, list(~round(., 3)))  %>% 
   mutate_if(is.numeric, list(~prettyNum(., " "))) -> table4
-
-# Transpose 
-table4 %<>% 
-  data.table::transpose() %>% 
-  set_rownames(names(table4)) %>% 
-  set_colnames(table4$type)
 
 pairwise.wilcox.test(g = df17_db$type, x = df17_db$q.out.max)
 
@@ -250,3 +256,4 @@ openxlsx::saveWorkbook(wb, "analysis/tables.xlsx", overwrite = T)
 
 # Save data
 save("df17", "df17_db", file =  "data/tidy/djan17.Rdata")
+

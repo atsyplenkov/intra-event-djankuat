@@ -85,6 +85,7 @@ ggsave(
   ggpubr::ggarrange(ssc_ntu1, ssc_ntu2, labels = "AUTO"),
   dpi = 500, h = 5, w = 10
 )
+
 # Create SSC-T models
 ssc_ntu %>% 
   filter(!is.na(ntu), ntu < 1000) %>% 

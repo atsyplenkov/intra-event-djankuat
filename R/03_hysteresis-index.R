@@ -163,7 +163,7 @@ df17_db %>%
 df17_db %>% 
   group_by(type) %>% 
   summarise(n = n(),
-            n.pct = n*100/nrow(.),
+            n.pct = n * 100/nrow(.),
             mean.duration = mean(length),
             mean.lag = mean(q.lag),
             sd.lag = sd(q.lag),

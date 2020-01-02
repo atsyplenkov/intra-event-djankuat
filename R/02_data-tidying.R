@@ -160,7 +160,8 @@ read_xlsx("data/raw/discharges_dja_2017_v3.xlsx", sheet = "Q(H)",
                      lim = c(0, 3)) +
   labs(x = expression(italic(H[OUT])*","*~cm),
        y = expression(italic(Q[OUT])*","*~m^3%.%s^"-1")) +
-  scale_color_manual(values = nationalparkcolors::park_palette("SmokyMountains")) +
+  ggsci::scale_color_npg() +
+  # scale_color_manual(values = nationalparkcolors::park_palette("SmokyMountains")) +
   theme_clean() -> qfh.out
 
 # Subset all non-rainy days at GL station
@@ -312,29 +313,68 @@ df17_db %>%
 # Hydrograph plot ------------------------------------------------------------
 Sys.setlocale("LC_TIME", "English")
 
+temp <- readxl::read_xlsx("data/raw/base_camp_AWS.xlsx",
+                          sheet = "2017-daily") %>% 
+  select(datetime = 1, t = 2) %>% 
+  mutate(datetime = force_tz(datetime, "Europe/Moscow"),
+         datetime = floor_date(datetime, unit = "minutes"),
+         t = as.numeric(t)) %>% 
+  filter(datetime != "2017-06-06 00:00:00") %>%
+  mutate(t = zoo::na.approx(t, rule = 2)) %>% 
+  rename(date = datetime) %>% 
+  openair::timeAverage(mydata = ., avg.time = "hour") %>% 
+  rename(datetime = date) %>% 
+  arrange(datetime) %>% 
+  mutate(t = zoo::na.approx(t, rule = 2))
+
+full_join(df17, temp, by = "datetime") %>% 
+  arrange(datetime) %>% 
+  mutate(t = zoo::na.approx(t),
+         p = ifelse(is.na(p), NA, p)) %>%
+         # ) %>% 
+  ggplot() +
+  geom_line(aes(x = datetime, y = t, color = "Air temperature",
+                fill = "Air temperature"), na.rm = T) +
+  # geom_line(aes(x = datetime, y = p/10, color = "Precipitation")) +
+  geom_col(aes(x = datetime, y = p/10, color = "Precipitation",
+               fill = "Precipitation")) +
+  scale_y_continuous(name = "Air temperature, °C",
+                     sec.axis = sec_axis(~.*10, name = "Precipitation, mm")) +
+  scale_x_datetime(name = "",
+                   date_breaks = "7 days",
+                   date_labels = "%b %d",
+                   limits = c(as.POSIXct("2017-06-06 12:00:00"),
+                              as.POSIXct("2017-09-24 00:00:00"))) +
+  ggsci::scale_color_nejm(name = "") +
+  ggsci::scale_fill_nejm(name = "") +
+  theme_clean() -> temp_rain
+
 df17 %>% 
   mutate_at(vars(q, ssc), list(~zoo::na.approx(., rule = 2))) %>%
-  mutate(p = ifelse(is.na(p), 0, p),
-         ssc = log10(ssc)) %>% 
-  select(datetime, q, ssc, p) %>% 
-  gather(var, val, -datetime) %>% 
-  ggplot(aes(x = datetime, y = val, color = var)) +
-  geom_line() +
-  facet_wrap(~var, scales = "free_y", nrow = 3, strip.position = "right",
-             labeller = labeller(var = c(
-               p = "Precipitation",
-               q = "Water discharge",
-               ssc = "log10(SSC)"
-             ))) +
-  labs(x = "", y = "") +
-  ggsci::scale_color_nejm() +
-  scale_x_datetime(date_breaks = "7 days",
-                   date_labels = "%b %d") +
-  theme_clean(legend = "none") -> hydrograph
+  mutate(ssc = log10(ssc)) %>% 
+  ggplot() +
+  geom_line(aes(x = datetime, y = ssc-2, color = "Suspended sediment concentration")) +
+  geom_line(aes(x = datetime, y = q, color = "Water discharge"), na.rm = T) +
+  scale_y_continuous(name = expression(italic(Q[OUT])*","~m^3%.%s^-1),
+                     sec.axis = sec_axis(~.+2,
+                                         name = expression(log[10]*italic(SSC[OUT])*","~ g %.% m^-3))) +
+  scale_x_datetime(name = "",
+                   date_breaks = "7 days",
+                   date_labels = "%b %d",
+                   limits = c(as.POSIXct("2017-06-06 12:00:00"),
+                              as.POSIXct("2017-09-24 00:00:00"))) +
+  ggsci::scale_color_npg(name = "") +
+  theme_clean() -> hydro_ssc
 
-ggsave("figures/fig06_hydrograph.png", hydrograph,
-       dpi = 500, w = 10, h = 6)
-  
+
+ggpubr::ggarrange(temp_rain, hydro_ssc,
+                  ncol = 1,
+                  align = "h",
+                  legend = "bottom",
+                  labels = "AUTO") %>% 
+  ggsave(filename = "figures/fig06_hydrograph.png", plot = ., dpi = 500,
+         w = 10, h = 6)
+
 # SAVE -------------------------------------------------------------------------
 save("df17", "df17_db", file =  "data/tidy/djan17.Rdata")
 

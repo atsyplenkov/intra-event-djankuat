@@ -26,6 +26,11 @@ library(magrittr)
 source("R/00_own-functions.R")
 load("data/tidy/djan17.Rdata")
 
+# Pairwise Wilcox test
+pairwise.wilcox.test(x = df17_db$q.out.mean,
+                     g = as_factor(df17_db$type),
+                     p.adjust.method = "bonferroni")
+
 # Sediment budget
 df17_db %>% 
   mutate(dw = sl.gl - sl.out,
@@ -106,7 +111,7 @@ df17_db %>%
               formula = y ~ x,
               linetype = "dashed",
               se = F) +
-  # scale_x_continuous(limits = c(-0.2, 0.5)) +
+  scale_x_continuous(limits = c(-0.2, 0.5)) +
   # scale_y_continuous(limits = c(-50, 80)) +
   scale_color_manual(name = "",
                      label = c("Anticlockwise",
@@ -123,7 +128,7 @@ df17_db %>%
 
 df17_db %>% 
   mutate(delta = 100 * sl.gl / sl.out) %>%
-  filter(p > 0) %>%
+  filter(p > 8) %>%
   ggplot(aes(x = SHI, y = delta, color = type)) +
   geom_point() +
   # ggrepel::geom_text_repel(aes(label = he)) +
@@ -136,7 +141,7 @@ df17_db %>%
               formula = y ~ x,
               linetype = "dashed",
               se = F) +
-  # scale_x_continuous(limits = c(-0.2, 0.5)) +
+  scale_x_continuous(limits = c(-0.2, 0.5)) +
   # scale_y_continuous(limits = c(-50, 80)) +
   scale_color_manual(name = "",
                      label = c("Anticlockwise",
@@ -145,7 +150,7 @@ df17_db %>%
                                "Not clear"),
                      values = c( "#4DBBD5FF", "#E64B35FF",
                                  "#00A087FF", "gray")) +
-  labs(title = "During rainfall events",
+  labs(title = "During rainfall events > 8 mm",
        subtitle = "C",
        x = expression(italic(SHI)),
        y = expression(italic(SL["GL,REL"])*", %")) +
@@ -154,7 +159,7 @@ df17_db %>%
 df17_db %>% 
   mutate(delta = 100 * ((sl.mid - sl.gl)/sl.out)) %>%
   # mutate(delta = 100 - sl.mid * 100 / sl.out) %>%
-  filter(p > 3) %>%
+  filter(p > 8) %>%
   ggplot(aes(x = SHI, y = delta, color = type)) +
   geom_point() +
   # ggrepel::geom_text_repel(aes(label = he)) +
@@ -211,15 +216,14 @@ df17_db %>%
        y = expression(italic(SL["MID,REL"])*", %")) +
   theme_clean() -> shi_mid_norain
 
-
 df17_db %>% 
+  mutate(delta = 100 * ((sl.mid - sl.gl)/sl.out)) %>%
   # mutate(delta = 100 - sl.mid * 100 / sl.out) %>%
-  filter(p > 5, he != 89) %>%
-  # mutate(delta = 100 - sl.gl * 100 / sl.out) %>%
-  # filter(p == 0, !he %in% c(49, 56, 96)) %>%
+  # filter(p > 8) %>% 
   select_if(is.numeric) %>% 
-  correlate(method = "spearman") %>% 
-  focus(SHI)
+  correlate(method = "spearman")  %>% 
+  focus(intensity) %>%
+  arrange(intensity)
 
 # SAVE -------------------------------------------------------------------
 ggsave("figures/fig08_sed-budget.png", sed_budget,

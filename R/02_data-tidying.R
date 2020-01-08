@@ -193,8 +193,8 @@ df17 %>%
 
 ggpubr::ggarrange(qfh.out, qfh.gl, ncol = 2, align = "v",
                   common.legend = T, legend = "bottom",
-                  labels = "AUTO") %>% 
-ggsave("figures/fig04_qfh.png",
+                  labels = c("a", "b")) %>% 
+ggsave(filename = "figures/fig04_qfh.png",
        plot = .,
        dpi = 1000,
        w = 10, h = 5)
@@ -255,7 +255,7 @@ df17 %>%
   mutate_at(vars(Max.date, Min.date),
             list(~as.character.POSIXt(.))) -> table2
 
-
+# Calculate suspended load statistics as event based
 df17_db %>% 
   dplyr::select(he, sl.out, sl.mid, sl.gl) %>% 
   gather(station, sl, -he) %>% 
@@ -281,6 +281,8 @@ df17_db %>%
   mutate_at(vars(Max.date, Min.date),
             list(~as.character.POSIXt(.))) %>% 
   mutate(Total = ifelse(station == "sl.out", Total, NA)) -> table3_he
+
+# Calculate suspended load statistics as daily based
 # 
 # df17 %>% 
 #   dplyr::select(1:5, q.gl) %>% 
@@ -313,6 +315,7 @@ df17_db %>%
 # Hydrograph plot ------------------------------------------------------------
 Sys.setlocale("LC_TIME", "English")
 
+# Read and transform air temperature data
 temp <- readxl::read_xlsx("data/raw/base_camp_AWS.xlsx",
                           sheet = "2017-daily") %>% 
   select(datetime = 1, t = 2) %>% 
@@ -327,6 +330,7 @@ temp <- readxl::read_xlsx("data/raw/base_camp_AWS.xlsx",
   arrange(datetime) %>% 
   mutate(t = zoo::na.approx(t, rule = 2))
 
+# Plot timeseries of raindall, air temperature, water discharge and SSC
 full_join(df17, temp, by = "datetime") %>% 
   arrange(datetime) %>% 
   mutate(t = zoo::na.approx(t),
@@ -366,12 +370,11 @@ df17 %>%
   ggsci::scale_color_npg(name = "") +
   theme_clean() -> hydro_ssc
 
-
 ggpubr::ggarrange(temp_rain, hydro_ssc,
                   ncol = 1,
                   align = "h",
                   legend = "bottom",
-                  labels = "AUTO") %>% 
+                  labels = c("a", "b")) %>% 
   ggsave(filename = "figures/fig06_hydrograph.png", plot = ., dpi = 500,
          w = 10, h = 6)
 

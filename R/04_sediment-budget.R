@@ -121,7 +121,7 @@ df17_db %>%
                      values = c( "#4DBBD5FF", "#E64B35FF",
                                  "#00A087FF", "gray")) +
   labs(title = "During non-rainfall events",
-       subtitle = "A",
+       subtitle = "a",
        x = expression(italic(SHI)),
        y = expression(italic(SL["GL,REL"])*", %")) +
   theme_clean() -> shi_gl_norain
@@ -151,7 +151,7 @@ df17_db %>%
                      values = c( "#4DBBD5FF", "#E64B35FF",
                                  "#00A087FF", "gray")) +
   labs(title = "During rainfall events > 8 mm",
-       subtitle = "C",
+       subtitle = "c",
        x = expression(italic(SHI)),
        y = expression(italic(SL["GL,REL"])*", %")) +
   theme_clean() -> shi_gl_rain
@@ -180,7 +180,7 @@ df17_db %>%
                                "Not clear"),
                      values = c( "#4DBBD5FF", "#E64B35FF",
                                  "#00A087FF", "gray")) +  
-  labs(subtitle = "D",
+  labs(subtitle = "d",
        x = expression(italic(SHI)),
        y = expression(italic(SL["MID,REL"])*", %")) +
   theme_clean() -> shi_mid_rain
@@ -211,7 +211,7 @@ df17_db %>%
                                "Not clear"),
                      values = c( "#4DBBD5FF", "#E64B35FF",
                                  "#00A087FF", "gray")) +  
-  labs(subtitle = "B",
+  labs(subtitle = "b",
        x = expression(italic(SHI)),
        y = expression(italic(SL["MID,REL"])*", %")) +
   theme_clean() -> shi_mid_norain
@@ -236,6 +236,35 @@ ggpubr::ggarrange(shi_gl_norain, shi_mid_norain,
                   common.legend = T,
                   legend = "bottom") %>% 
   ggsave(plot = .,
-         filename = "figures/fig10_shi-pct.png",
+         filename = "figures/fig09_shi-pct.png",
          dpi = 500, w = 6, h = 6)
 
+# SAVE database as APPENDIX
+df17_db %>%
+  arrange(he) %>%
+  select(-mean_date) %>% 
+  mutate_at(vars(start, end), ~as.character(.)) %>% 
+  set_colnames(c("Hydrological event",
+                 "SHI [—]",
+                 "R.OUT [g/s]",
+                 "R.MID [g/s]",
+                 "R.GL [g/s]",
+                 "SSC.OUT.mean [g/cbm]",
+                 "SSC.OUT.max [g/cbm]",
+                 "Q.OUT.mean [cbm/s]",
+                 "Q.OUT.max [cbm/s]",
+                 "Precipitation [mm]",
+                 "Rainfall intensity [mm/h]",
+                 "Mean Q lag time [h]",
+                 "Start of the event [—]",
+                 "End of the event[—]",
+                 "Event duration [h]",
+                 "SL.OUT [t/event]",
+                 "SL.MID [t/event]",
+                 "SL.GL [t/event]",
+                 "Loop type")) %>% 
+  # Reorder columns
+  select(c(1, 13, 14, 15, 10, 11, 6, 7, 8, 9,
+           3, 4, 5, 12, 16, 17, 18, 2, 19)) %>% 
+  openxlsx::write.xlsx(x = .,
+                       "analysis/APPENDIX.xlsx", )

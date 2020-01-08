@@ -75,7 +75,7 @@ df17 %>%
   theme_clean() -> test_shi2
 
 ggpubr::ggarrange(test_shi1, test_shi2,
-                  labels = "AUTO",
+                  labels = c("a", "b"),
                   nrow = 1,
                   align = "hv") %>% 
   ggsave(plot = .,
@@ -242,7 +242,7 @@ ggpubr::ggarrange(shi_q, shi_sl,
                   nrow = 1,
                   common.legend = T,
                   legend = "bottom",
-                  labels = "AUTO",
+                  labels = c("a", "b"),
                   align = "hv") %>% 
   ggsave(plot = .,
          filename = "figures/fig07_shi.png",
@@ -256,4 +256,3 @@ openxlsx::saveWorkbook(wb, "analysis/tables.xlsx", overwrite = T)
 
 # Save data
 save("df17", "df17_db", file =  "data/tidy/djan17.Rdata")
-

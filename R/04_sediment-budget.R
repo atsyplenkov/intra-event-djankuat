@@ -244,6 +244,7 @@ df17_db %>%
   arrange(he) %>%
   select(-mean_date) %>% 
   mutate_at(vars(start, end), ~as.character(.)) %>% 
+  mutate_all(~str_replace_na(.)) %>% 
   set_colnames(c("Hydrological event",
                  "SHI [—]",
                  "R.OUT [g/s]",

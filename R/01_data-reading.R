@@ -95,6 +95,8 @@ ssc_ntu %>%
   filter(!is.na(ntu), ntu >= 1000) %>% 
   lm(SSC ~ ntu, data = .) -> lm2
 
+save("lm1", "lm2", file = "data/tidy/ssc-ntu_formula.Rdata")
+
 # Database can be accessed via doi.org/10.5063/F1H1307Q
 
 ## See Rets, E. P., Popovnin, V. V., Toropov, P. A., Smirnov,

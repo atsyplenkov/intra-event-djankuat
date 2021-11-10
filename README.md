@@ -1,5 +1,5 @@
-[![doi](https://img.shields.io/badge/doi-10.1007/s11368-020-02633-z-success.svg?style=github)][doi]
-
+[![doi](https://img.shields.io/badge/doi-10.1007%2Fs11368-020-02633-z-success.svg?style=github)][doi]
+https://link.springer.com/article/10.1007%2Fs11368-020-02633-z
 # Djankuat river (Caucasus Mountains) sediment source fingerprinting
 
 This repository centralizes the main processing steps to explore intra-event suspended sediment dynamics in a small proglacial river. It is meant to accompany a journal article ([*Tsyplenkov et al., 2020*][doi]). This study is part of the ongoing Russian Science Foundation project No. 19-17-00181: *«Quantitative assessment of the slope sediment flux and its changes in the Holocene for the Caucasus mountain rivers.»*
